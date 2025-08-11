@@ -130,10 +130,6 @@ class HybridAcrobotController:
         idx = np.argmin(np.abs(self.torques - u_cont))
         return int(idx), u_cont  # return both discrete action and raw torque for logging
 
-
-# ════════════════════════════════════════════════════════════════════════
-# quick demo
-# ════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
     with open('obs.csv', 'w') as f:
         writer = csv.writer(f)
