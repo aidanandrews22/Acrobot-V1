@@ -1,3 +1,10 @@
+# Papers: 
+# https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=4566461
+# https://courses.ece.ucsb.edu/ECE179/179D_S12Byl/hw/acrobot_swingup.pdf
+# https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=350934
+# Textbook: https://underactuated.csail.mit.edu/acrobot.html
+
+
 import numpy as np
 import csv
 import gymnasium as gym

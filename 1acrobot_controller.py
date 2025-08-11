@@ -49,10 +49,15 @@ E_des = g * (m1*lc1 + m2*(l1 + lc2))      # U at (θ1,θ2) = (π,0)
 def swing_up(upright_tol=0.15):
     # textbook gains – kE slightly >1 helps with ±1 N·m saturation
     # kE, k1, k2, k3 = 2.0, 1.0, 2.0, 1.0
-    kE = 2.0 # how hard we pump brake to correct tot energy
-    k1 = 1.0 # bends/unbends the elbow
-    k2 = 10.0 # spring to keep the links colinear
-    k3 = 10.0 # adds damping to the elbow motion
+    kE = 3.0   # energy pump gain (higher = harder swing, but gated below)
+    k1 = 8.0   # spring on th2 to keep links colinear
+    k2 = 4.0   # damping on d2 to prevent elbow flapping
+    k3 = 1.0   # weight on energy term after clipping/gating
+
+    # safety shaping to preserve alignment while pumping
+    th2_gate = 0.6   # rad; fade out energy when |th2| grows beyond this
+    ubar_max = 2.0   # clip energy drive (prevents huge v)
+    v_max    = 8.0   # clip commanded q2 acceleration
 
     def ctrl(obs):
         th1, th2, d1, d2 = unpack(obs)
@@ -64,9 +69,14 @@ def swing_up(upright_tol=0.15):
         E  = 0.5 * dq @ (M(th2) @ dq) + U
         E_tilde = E - E_des              # ★ correct sign
 
-        u_bar = d1 * E_tilde             #  \bar u  (Tedrake Eq. 3.72)
+        u_bar_raw = d1 * E_tilde         #  \bar u  (Tedrake Eq. 3.72)
+        # fade energy injection as misalignment grows; also clip
+        gate = max(0.0, 1.0 - (abs(th2)/th2_gate)**2)
+        u_bar = np.clip(u_bar_raw, -ubar_max, ubar_max) * gate
 
-        v = -k1*th2 - k2*d2 + k3*u_bar   #  ν = q̈2ᵈ  (Eq. 3.73)
+        # ν = q̈2ᵈ: strong alignment + gated energy pump
+        v = -k1*th2 - k2*d2 + k3*(kE * u_bar)
+        v = float(np.clip(v, -v_max, v_max))
 
         # collocated PFL torque τ  (algebra from text, no approximations)
         M11, M12 = M(th2)[0]
@@ -113,7 +123,7 @@ def lqr_ctrl(obs):
 # ════════════════════════════════════════════════════════════════════════
 def acrobot_policy(obs):
     th1, th2, *_ = unpack(obs)
-    if abs(th1 - math.pi) < 0.3 and abs(th2) < 0.8:
+    if abs(th1 - math.pi) < 0.3 and abs(th2) < 0.25:
         print("lqr")
         return lqr_ctrl(obs)
     else:
